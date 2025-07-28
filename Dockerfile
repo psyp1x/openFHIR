@@ -3,7 +3,7 @@ FROM maven:3.8.3-openjdk-17-slim AS build
 WORKDIR /app
 COPY . .
 # build without tests
-RUN mvn clean package -DskipTests
+RUN mvn -B clean package -DskipTests
 
 # Path: Dockerfile
 # java runtime image, java 17
