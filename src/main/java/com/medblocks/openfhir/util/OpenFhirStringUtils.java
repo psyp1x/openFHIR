@@ -394,13 +394,28 @@ public class OpenFhirStringUtils {
                 base = fhirPath;
             }
             boolean negate = FhirConnectConst.CONDITION_OPERATOR_NOT_OF.equals(condition.getOperator());
+            List<String> codes = getCodesFromCriteria(condition.getCriteria());
+            String joinedConditions = codes.stream()
+                        .map(code -> {
+                            if(targetAttribute.contains("coding")){
+                                return targetAttribute.replace(".code",".where")+ "(code='" + code + "').exists()";
+                            } else if (targetAttribute.contains("url")) {
+                                return targetAttribute +".toString().contains('"+code+"')";
+                            } else {
+                                return targetAttribute+".toString() = '"+code +"'";
+                            }
+                        })
+                        .collect(Collectors.joining(" or "));
+//            String whereClause = ".where(" + (negate ? "(" + joinedConditions + ")=false" : joinedConditions) + ")";
+            String whereClause;
+            if(codes.size()>1){
+                whereClause = ".where(" + (negate ? "(" + joinedConditions + ")=false" : joinedConditions) + ")";
+            } else{
+                whereClause = ".where(" + (negate ?  joinedConditions + "=false" : joinedConditions) + ")";
+            }
             stringJoiner.add(base
-                                     .replace(condition.getTargetRoot(),
-                                              condition.getTargetRoot() + ".where(" + targetAttribute
-                                                      + ".toString().contains('" + getStringFromCriteria(
-                                                      condition.getCriteria()).getCode() + "')" + (negate ? "=false"
-                                                      : "") + ")")
-                                     .replace(FhirConnectConst.FHIR_RESOURCE_FC, resource));
+                .replace(condition.getTargetRoot(), condition.getTargetRoot() + whereClause)
+                .replace(FhirConnectConst.FHIR_RESOURCE_FC, resource));
 
         }
         return stringJoiner.toString();
@@ -556,31 +571,51 @@ public class OpenFhirStringUtils {
         }
 
         boolean negate = FhirConnectConst.CONDITION_OPERATOR_NOT_OF.equals(condition.getOperator());
+        String targetAttr = condition.getTargetAttribute();
+        List<String> codes = getCodesFromCriteria(condition.getCriteria());
+
+        String joinedConditions = codes.stream()
+                .map(code -> {
+                    if(targetAttr.contains("coding")){
+                        return targetAttr.replace(".code",".where")+ "(code='" + code + "').exists()";
+                    } else if (targetAttr.contains("url")) {
+                        return targetAttr +".toString().contains('"+code+"')";
+                    } else {
+                        return targetAttr+".toString() = '"+code +"'";
+                    }
+                })
+                .collect(Collectors.joining(" or "));
 
         if (actualConditionTargetRoot.startsWith(resource) && withParentsWhereInPlace.equals(originalFhirPath)) {
-            // find the right place first
             final String commonPath = setParentsWherePathToTheCorrectPlace(originalFhirPath,
-                                                                           actualConditionTargetRoot); // path right before the condition should start
+                    actualConditionTargetRoot); // path right before the condition should start
             final String remainingToEndUpInWhere = actualConditionTargetRoot
                     .replace(commonPath + ".", "")
                     .replace(commonPath, "");
             final String remainingToAdd =
                     StringUtils.isBlank(remainingToEndUpInWhere) ? "" : (remainingToEndUpInWhere + ".");
-            final String whereClause =
-                    ".where(" + remainingToAdd + condition.getTargetAttribute() + ".toString().contains('"
-                            + getStringFromCriteria(condition.getCriteria()).getCode() + "')" + (negate ? "=false" : "")
-                            + ")";
+//            final String whereClause = ".where(" + remainingToAdd + (negate ? "(" + joinedConditions + ")=false" : joinedConditions) + ")";
+            final String whereClause;
+            if(codes.size()>1){
+                whereClause = ".where(" + remainingToAdd + (negate ? "(" + joinedConditions + ")=false" : joinedConditions) + ")";
+            } else{
+                whereClause = ".where(" + remainingToAdd + (negate ? joinedConditions + "=false" : joinedConditions) + ")";
+            }
             final String remainingItemsFromParent = originalFhirPath.replace(commonPath, "");
             return commonPath + whereClause + remainingItemsFromParent;
         } else {
-            // then do your own where path
-            final String whereClause =
-                    ".where(" + condition.getTargetAttribute() + ".toString().contains('" + getStringFromCriteria(
-                            condition.getCriteria()).getCode() + "')" + (negate ? "=false" : "") + ")";
+//            final String whereClause = ".where(" + (negate ? "(" + joinedConditions + ")=false" : joinedConditions) + ")";
+            final String whereClause;
+            if(codes.size() >1){
+                whereClause = ".where(" + (negate ? "(" + joinedConditions + ")=false" : joinedConditions) + ")";
+            } else{
+                whereClause = ".where(" + (negate ? joinedConditions + "=false" : joinedConditions) + ")";
+            }
             // then suffix with whatever is left from the children's path
             return withParentsWhereInPlace + whereClause + (StringUtils.isBlank(remainingItems) ? ""
                     : (remainingItems.startsWith(".") ? remainingItems : ("." + remainingItems)));
         }
+
     }
 
     /**
@@ -876,5 +911,42 @@ public class OpenFhirStringUtils {
             }
         }
         return true;
+    }
+
+    public List<String> getCodesFromCriteria(final String criteria) {
+        if (criteria == null) {
+            return Collections.emptyList();
+        }
+
+        // Handle simple code without brackets
+        if (!criteria.startsWith("[") && !criteria.endsWith("]")) {
+            return Collections.singletonList(criteria.trim());
+        }
+
+        // Remove brackets and split by comma
+        String[] criterias = criteria.replace("[", "")
+                .replace("]", "")
+                .split(",");
+
+        return Arrays.stream(criterias)
+                .map(code -> code.trim())
+                .map(code -> {
+                    // Handle StructureDefinition URLs
+                    if (code.startsWith("http://") || code.startsWith("https://")) {
+                        return code;
+                    }
+
+                    // Handle SNOMED and LOINC codes - maintain backward compatibility
+                    if (code.startsWith("$snomed.")) {
+                        return code.substring(8); // Just return the code part
+                    }
+                    if (code.startsWith("$loinc.")) {
+                        return code.substring(7); // Just return the code part
+                    }
+
+                    // Handle simple codes
+                    return code;
+                })
+                .collect(Collectors.toList());
     }
 }

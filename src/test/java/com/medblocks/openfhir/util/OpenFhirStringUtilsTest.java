@@ -26,14 +26,14 @@ public class OpenFhirStringUtilsTest {
         // Patient.name.given
         // RESULT: should return index 0, because 0 and 1 need to be on the name
         Assert.assertEquals("dataset_poc_rso-zl/advance_care_directive/media_file",
-                            new OpenFhirStringUtils().prepareParentOpenEhrPath(
-                                    "dataset_poc_rso-zl/advance_care_directive/media_file/content.content",
-                                    "dataset_poc_rso-zl/advance_care_directive/media_file/content_name"));
+                new OpenFhirStringUtils().prepareParentOpenEhrPath(
+                        "dataset_poc_rso-zl/advance_care_directive/media_file/content.content",
+                        "dataset_poc_rso-zl/advance_care_directive/media_file/content_name"));
 
         Assert.assertEquals("person/personendaten/person/geburtsname:0",
-                            new OpenFhirStringUtils().prepareParentOpenEhrPath(
-                                    "person.personendaten.person.geburtsname",
-                                    "person/personendaten/person/geburtsname:0/vollständiger_name"));
+                new OpenFhirStringUtils().prepareParentOpenEhrPath(
+                        "person.personendaten.person.geburtsname",
+                        "person/personendaten/person/geburtsname:0/vollständiger_name"));
 
     }
 
@@ -135,29 +135,29 @@ public class OpenFhirStringUtilsTest {
         flatJsonObject.add("diagnose/diagnose:0/lebensphase/ende|terminology", new JsonPrimitive(
                 "//fhir.hl7.org//ValueSet/$expand?url=http://fhir.de/ValueSet/lebensphase-de"));
         flatJsonObject.add("diagnose/diagnose:0/multiple_coding_icd-10-gm/multiple_coding_identifier|value",
-                           new JsonPrimitive("†"));
+                new JsonPrimitive("†"));
         flatJsonObject.add("diagnose/diagnose:0/multiple_coding_icd-10-gm/multiple_coding_identifier|code",
-                           new JsonPrimitive("at0002"));
+                new JsonPrimitive("at0002"));
         flatJsonObject.add("diagnose/diagnose:0/multiple_coding_icd-10-gm/multiple_coding_identifier|terminology",
-                           new JsonPrimitive("local"));
+                new JsonPrimitive("local"));
         flatJsonObject.add("diagnose/diagnose:0/klinisch_relevanter_zeitraum_zeitpunkt_der_genesung",
-                           new JsonPrimitive("2022-02-03T04:05:06"));
+                new JsonPrimitive("2022-02-03T04:05:06"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/diagnostic_status|code", new JsonPrimitive("at0016"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/diagnostic_status|terminology",
-                           new JsonPrimitive("local"));
+                new JsonPrimitive("local"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/diagnostic_status|value",
-                           new JsonPrimitive("Preliminary"));
+                new JsonPrimitive("Preliminary"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/klinischer_status|terminology",
-                           new JsonPrimitive("local"));
+                new JsonPrimitive("local"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/klinischer_status|code", new JsonPrimitive("at0026"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/klinischer_status|value",
-                           new JsonPrimitive("Active"));
+                new JsonPrimitive("Active"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/klinischer_status2|value",
-                           new JsonPrimitive("Active"));
+                new JsonPrimitive("Active"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/klinischer_status2|terminology",
-                           new JsonPrimitive("local"));
+                new JsonPrimitive("local"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/klinischer_status2|code",
-                           new JsonPrimitive("at0026"));
+                new JsonPrimitive("at0026"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/diagnoserolle|code", new JsonPrimitive("42"));
         flatJsonObject.add("diagnose/diagnose:0/klinischer_status/diagnoserolle|terminology", new JsonPrimitive(
                 "//fhir.hl7.org//ValueSet/$expand?url=http://terminology.hl7.org/ValueSet/diagnosis-role"));
@@ -210,12 +210,12 @@ public class OpenFhirStringUtilsTest {
         toJoin.forEach(tj -> flatJsonObject.add(tj, new JsonPrimitive(tj)));
 
         Assert.assertEquals("stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|terminology",
-                            openFhirStringUtils.getAllEntriesThatMatchIgnoringPipe(
-                                    "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|terminology",
-                                    flatJsonObject).get(0));
+                openFhirStringUtils.getAllEntriesThatMatchIgnoringPipe(
+                        "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|terminology",
+                        flatJsonObject).get(0));
         Assert.assertEquals("stationärer_versorgungsfall/aufnahmedaten/abc|abc",
-                            openFhirStringUtils.getAllEntriesThatMatchIgnoringPipe(
-                                    "stationärer_versorgungsfall/aufnahmedaten/abc", flatJsonObject).get(0));
+                openFhirStringUtils.getAllEntriesThatMatchIgnoringPipe(
+                        "stationärer_versorgungsfall/aufnahmedaten/abc", flatJsonObject).get(0));
         Assert.assertTrue(openFhirStringUtils.getAllEntriesThatMatchIgnoringPipe(
                 "stationärer_versorgungsfall/aufnahmedaten/abc/cde", flatJsonObject).isEmpty());
     }
@@ -223,26 +223,26 @@ public class OpenFhirStringUtilsTest {
     @Test
     public void joinValuesThatAreOne_dots() {
         final List<String> toJoin = Arrays.asList("stationärer_versorgungsfall/context/start_time",
-                                                  "stationärer_versorgungsfall/context/setting|terminology",
-                                                  "stationärer_versorgungsfall/context/setting|code",
-                                                  "stationärer_versorgungsfall/context/setting|value",
-                                                  "stationärer_versorgungsfall/context/_end_time",
-                                                  "stationärer_versorgungsfall/context/_health_care_facility|name",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_1._und_2._stelle|terminology",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_1._und_2._stelle|code",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_1._und_2._stelle|value",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_3._stelle|terminology",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_3._stelle|value",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_3._stelle|code",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_4._stelle|value",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_4._stelle|code",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_4._stelle|terminology",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|terminology",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|value",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|code",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/kennung_vor_der_aufnahme",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/datum_uhrzeit_der_aufnahme",
-                                                  "stationärer_versorgungsfall/aufnahmedaten/vorheriger_patientenstandort_vor_aufnahme/campus"
+                "stationärer_versorgungsfall/context/setting|terminology",
+                "stationärer_versorgungsfall/context/setting|code",
+                "stationärer_versorgungsfall/context/setting|value",
+                "stationärer_versorgungsfall/context/_end_time",
+                "stationärer_versorgungsfall/context/_health_care_facility|name",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_1._und_2._stelle|terminology",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_1._und_2._stelle|code",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_1._und_2._stelle|value",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_3._stelle|terminology",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_3._stelle|value",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_3._stelle|code",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_4._stelle|value",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_4._stelle|code",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmegrund_-_4._stelle|terminology",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|terminology",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|value",
+                "stationärer_versorgungsfall/aufnahmedaten/aufnahmeanlass|code",
+                "stationärer_versorgungsfall/aufnahmedaten/kennung_vor_der_aufnahme",
+                "stationärer_versorgungsfall/aufnahmedaten/datum_uhrzeit_der_aufnahme",
+                "stationärer_versorgungsfall/aufnahmedaten/vorheriger_patientenstandort_vor_aufnahme/campus"
         );
 
         final JsonObject flatJsonObject = new JsonObject();
@@ -251,11 +251,11 @@ public class OpenFhirStringUtilsTest {
         final String testingPath = "$archetype.aufnahmedaten.aufnahmegrund_-_1\\._und_2\\._stelle";
 
         final String prepared = new OpenFhirStringUtils().prepareOpenEhrSyntax(testingPath,
-                                                                               "stationärer_versorgungsfall");
+                "stationärer_versorgungsfall");
 
         final String withRegex = new OpenFhirStringUtils().addRegexPatternToSimplifiedFlatFormat(prepared);
         final List<String> matchingEntries = new OpenFhirStringUtils().getAllEntriesThatMatch(withRegex,
-                                                                                              flatJsonObject);
+                flatJsonObject);
         Assert.assertEquals(3, matchingEntries.size());
 
     }
@@ -266,56 +266,56 @@ public class OpenFhirStringUtilsTest {
         Condition condition = new Condition();
 
         Assert.assertEquals("MedicationStatement.effective.as(Period)",
-                            openFhirStringUtils.getFhirPathWithConditions("$resource.effective.as(Period)",
-                                                                          null,
-                                                                          "MedicationStatement",
-                                                                          null));
+                openFhirStringUtils.getFhirPathWithConditions("$resource.effective.as(Period)",
+                        null,
+                        "MedicationStatement",
+                        null));
 
         Assert.assertEquals("MedicationStatement.medication.resolve().ingredient",
-                            openFhirStringUtils.getFhirPathWithConditions(
-                                    "MedicationStatement.medication.resolve().ingredient",
-                                    null,
-                                    "MedicationStatement",
-                                    "MedicationStatement.medication.resolve()"));
+                openFhirStringUtils.getFhirPathWithConditions(
+                        "MedicationStatement.medication.resolve().ingredient",
+                        null,
+                        "MedicationStatement",
+                        "MedicationStatement.medication.resolve()"));
 
 
         condition.setTargetRoot("$resource.location.physicalType.coding");
         condition.setTargetAttribute("code");
         condition.setCriteria("[bd]");
         condition.setOperator("one of");
-        Assert.assertEquals("Encounter.location.where(physicalType.coding.code.toString().contains('bd'))",
-                            openFhirStringUtils.getFhirPathWithConditions("Encounter.location",
-                                                                          condition,
-                                                                          "Encounter",
-                                                                          null));
+        Assert.assertEquals("Encounter.location.where(physicalType.coding.code.toString() = 'bd')",
+                openFhirStringUtils.getFhirPathWithConditions("Encounter.location",
+                        condition,
+                        "Encounter",
+                        null));
 
 
         condition.setTargetRoot("$resource.identifier");
         condition.setTargetAttribute("system");
         condition.setCriteria("[external identifier]");
         condition.setOperator("one of");
-        Assert.assertEquals("MedicationStatement.identifier.where(system.toString().contains('external identifier'))",
-                            openFhirStringUtils.getFhirPathWithConditions("MedicationStatement.identifier",
-                                                                          condition,
-                                                                          "MedicationStatement",
-                                                                          null));
+        Assert.assertEquals("MedicationStatement.identifier.where(system.toString() = 'external identifier')",
+                openFhirStringUtils.getFhirPathWithConditions("MedicationStatement.identifier",
+                        condition,
+                        "MedicationStatement",
+                        null));
 
         Assert.assertEquals("MedicationStatement.dosage.text",
-                            openFhirStringUtils.getFhirPathWithConditions("MedicationStatement.dosage.text",
-                                                                          null,
-                                                                          "MedicationStatement",
-                                                                          "MedicationStatement.dosage"));
+                openFhirStringUtils.getFhirPathWithConditions("MedicationStatement.dosage.text",
+                        null,
+                        "MedicationStatement",
+                        "MedicationStatement.dosage"));
 
         condition = new Condition();
         condition.setTargetRoot("$resource.identifier");
         condition.setTargetAttribute("system");
         condition.setCriteria("[id]");
         condition.setOperator("one of");
-        Assert.assertEquals("Patient.identifier.where(system.toString().contains('id'))",
-                            openFhirStringUtils.getFhirPathWithConditions("Patient.identifier",
-                                                                          condition,
-                                                                          "Patient",
-                                                                          "Patient"));
+        Assert.assertEquals("Patient.identifier.where(system.toString() = 'id')",
+                openFhirStringUtils.getFhirPathWithConditions("Patient.identifier",
+                        condition,
+                        "Patient",
+                        "Patient"));
 
         condition = new Condition();
         condition.setTargetRoot("Procedure.code.coding.extension");
@@ -325,9 +325,9 @@ public class OpenFhirStringUtilsTest {
         Assert.assertEquals(
                 "Procedure.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/ops')).extension.where(url.toString().contains('http://fhir.de/StructureDefinition/seitenlokalisation')).value",
                 openFhirStringUtils.getFhirPathWithConditions("Procedure.code.coding.extension.value",
-                                                              condition,
-                                                              "Procedure",
-                                                              "Procedure.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/ops'))"));
+                        condition,
+                        "Procedure",
+                        "Procedure.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/ops'))"));
 
         condition = new Condition();
         condition.setTargetRoot(
@@ -336,7 +336,7 @@ public class OpenFhirStringUtilsTest {
         condition.setCriteria("[http://fhir.de/CodeSystem/bfarm/icd-10-gm]");
         condition.setOperator("one of");
         Assert.assertEquals(
-                "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value.resolve().code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/icd-10-gm')).code",
+                "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value.resolve().code.coding.where(system.toString() = 'http://fhir.de/CodeSystem/bfarm/icd-10-gm').code",
                 openFhirStringUtils.getFhirPathWithConditions(
                         "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value.resolve().code.coding.code",
                         condition,
@@ -355,9 +355,9 @@ public class OpenFhirStringUtilsTest {
         Assert.assertEquals(
                 "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value",
                 openFhirStringUtils.getFhirPathWithConditions("Condition.extension.value",
-                                                              null,
-                                                              "Condition",
-                                                              "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related'))"));
+                        null,
+                        "Condition",
+                        "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related'))"));
 
         condition = new Condition();
         condition.setTargetRoot(
@@ -393,11 +393,11 @@ public class OpenFhirStringUtilsTest {
         condition.setTargetAttribute("physicalType.coding.code");
         condition.setCriteria("[ro]");
         condition.setOperator("one of");
-        Assert.assertEquals("Condition.location.where(physicalType.coding.code.toString().contains('ro')).id",
-                            openFhirStringUtils.getFhirPathWithConditions("Condition.location.id",
-                                                                          condition,
-                                                                          "Condition",
-                                                                          null));
+        Assert.assertEquals("Condition.location.where(physicalType.coding.where(code='ro').exists()).id",
+                openFhirStringUtils.getFhirPathWithConditions("Condition.location.id",
+                        condition,
+                        "Condition",
+                        null));
 
         condition = new Condition();
         condition.setTargetRoot("$resource.extension");
@@ -407,9 +407,9 @@ public class OpenFhirStringUtilsTest {
         Assert.assertEquals(
                 "Encounter.extension.where(url.toString().contains('http://fhir.de/StructureDefinition/Aufnahmegrund'))",
                 openFhirStringUtils.getFhirPathWithConditions("$resource.extension",
-                                                              condition,
-                                                              "Encounter",
-                                                              null));
+                        condition,
+                        "Encounter",
+                        null));
 
         condition = new Condition();
         condition.setTargetRoot("Patient.address.line.extension");
@@ -419,9 +419,9 @@ public class OpenFhirStringUtilsTest {
         Assert.assertEquals(
                 "Patient.address.where(type.toString().contains('both')).line.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/iso21090-ADXP-streetName')).value",
                 openFhirStringUtils.getFhirPathWithConditions("Patient.address.line.extension.value",
-                                                              condition,
-                                                              "Patient",
-                                                              "Patient.address.where(type.toString().contains('both')).line"));
+                        condition,
+                        "Patient",
+                        "Patient.address.where(type.toString().contains('both')).line"));
 
         condition = new Condition();
         condition.setTargetRoot("$fhirRoot");
@@ -429,18 +429,18 @@ public class OpenFhirStringUtilsTest {
         condition.setCriteria("8462-4");
         condition.setOperator("one of");
         Assert.assertEquals(
-                ".where(code.coding.code.toString().contains('8462-4')).value",
+                ".where(code.coding.where(code='8462-4').exists()).value",
                 openFhirStringUtils.getFhirPathWithConditions("value",
-                                                              condition,
-                                                              "Observation",
-                                                              null));
+                        condition,
+                        "Observation",
+                        null));
         // parent path has multiple where conditions
         Assert.assertEquals(
                 "Condition.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/icd-10-gm')).extension.where(url.toString().contains('http://fhir.de/StructureDefinition/icd-10-gm-diagnosesicherheit')).value",
                 openFhirStringUtils.getFhirPathWithConditions("Condition.code.coding.extension.value",
-                                                              null,
-                                                              "Observation",
-                                                              "Condition.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/icd-10-gm')).extension.where(url.toString().contains('http://fhir.de/StructureDefinition/icd-10-gm-diagnosesicherheit'))"));
+                        null,
+                        "Observation",
+                        "Condition.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/icd-10-gm')).extension.where(url.toString().contains('http://fhir.de/StructureDefinition/icd-10-gm-diagnosesicherheit'))"));
 
     }
 
@@ -448,13 +448,13 @@ public class OpenFhirStringUtilsTest {
     public void testSettingParentsPath() {
         final OpenFhirStringUtils openFhirStringUtils = new OpenFhirStringUtils();
         String s = openFhirStringUtils.setParentsWherePathToTheCorrectPlace("Procedure.code.coding.extension.value",
-                                                                            "Procedure.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/ops'))");
+                "Procedure.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/ops'))");
         Assert.assertEquals(
                 "Procedure.code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/ops')).extension.value",
                 s);
 
         s = openFhirStringUtils.setParentsWherePathToTheCorrectPlace("Condition.extension.value",
-                                                                     "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related'))");
+                "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related'))");
         Assert.assertEquals(
                 "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value",
                 s);
@@ -467,7 +467,7 @@ public class OpenFhirStringUtilsTest {
                 s);
 
         s = openFhirStringUtils.setParentsWherePathToTheCorrectPlace("MedicationStatement.effective.as(Period)",
-                                                                     null);
+                null);
         Assert.assertEquals("MedicationStatement.effective.as(Period)", s);
 
         s = openFhirStringUtils.setParentsWherePathToTheCorrectPlace(
@@ -476,7 +476,7 @@ public class OpenFhirStringUtilsTest {
         Assert.assertEquals("MedicationStatement.medication.resolve().ingredient", s);
 
         s = openFhirStringUtils.setParentsWherePathToTheCorrectPlace("MedicationStatement.dosage.text",
-                                                                     "MedicationStatement.dosage");
+                "MedicationStatement.dosage");
         Assert.assertEquals("MedicationStatement.dosage.text", s);
 
         s = openFhirStringUtils.setParentsWherePathToTheCorrectPlace(
@@ -552,11 +552,11 @@ public class OpenFhirStringUtilsTest {
         final Map<String, List<String>> stringListMap = new OpenFhirStringUtils().joinValuesThatAreOne(toJoin);
         Assert.assertEquals(3, stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").size());
         Assert.assertEquals("growth_chart/body_weight/any_event:1/state_of_dress|code",
-                            stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").get(0));
+                stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").get(0));
         Assert.assertEquals("growth_chart/body_weight/any_event:1/state_of_dress|terminology",
-                            stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").get(1));
+                stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").get(1));
         Assert.assertEquals("growth_chart/body_weight/any_event:1/state_of_dress|value",
-                            stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").get(2));
+                stringListMap.get("growth_chart/body_weight/any_event:1/state_of_dress").get(2));
         Assert.assertEquals(3, stringListMap.get("growth_chart/body_weight/any_event:2/math_function").size());
         Assert.assertEquals(2, stringListMap.get("growth_chart/body_weight/encoding").size());
         Assert.assertEquals(1, stringListMap.get("growth_chart/body_weight/any_event:1/confounding_factors:0").size());
