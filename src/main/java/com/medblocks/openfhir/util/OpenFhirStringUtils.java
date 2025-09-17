@@ -36,6 +36,10 @@ public class OpenFhirStringUtils {
     public static final String RECURRING_SYNTAX = "[n]";
     public static final String RECURRING_SYNTAX_ESCAPED = "\\[n]";
 
+    public static final String WHERE_CLAUSE = ".where(";
+
+    public static final String FALSE_CLAUSE = "=false";
+
     /**
      * Adds regex pattern to the simplified flat path so that we can match all entries in a flat json
      *
@@ -394,16 +398,38 @@ public class OpenFhirStringUtils {
                 base = fhirPath;
             }
             boolean negate = FhirConnectConst.CONDITION_OPERATOR_NOT_OF.equals(condition.getOperator());
-            stringJoiner.add(base
-                                     .replace(condition.getTargetRoot(),
-                                              condition.getTargetRoot() + ".where(" + targetAttribute
-                                                      + ".toString().contains('" + getStringFromCriteria(
-                                                      condition.getCriteria()).getCode() + "')" + (negate ? "=false"
-                                                      : "") + ")")
-                                     .replace(FhirConnectConst.FHIR_RESOURCE_FC, resource));
+
+            getWhereClause(resource, stringJoiner, condition, targetAttribute, base, negate);
 
         }
         return stringJoiner.toString();
+    }
+
+    private void getWhereClause(final String resource, final StringJoiner stringJoiner, Condition condition,
+                                final String targetAttribute, final String base, boolean negate) {
+        List<String> codes = getCodesFromCriteria(condition.getCriteria());
+
+        String joinedConditions = codes.stream()
+                .map(code -> {
+                    if(targetAttribute.contains("coding")){
+                        return targetAttribute.replace(".code",".where")+ "(code='" + code + "').exists()";
+                    } else if (targetAttribute.contains("url")) {
+                        return targetAttribute +".toString().contains('"+code+"')";
+                    } else {
+                        return targetAttribute+".toString() = '"+code +"'";
+                    }
+                })
+                .collect(Collectors.joining(" or "));
+
+        String whereClause;
+        if(codes.size()>1){
+            whereClause = WHERE_CLAUSE + (negate ? "(" + joinedConditions + ")" + FALSE_CLAUSE : joinedConditions) + ")";
+        } else{
+            whereClause = WHERE_CLAUSE + (negate ?  joinedConditions + FALSE_CLAUSE : joinedConditions) + ")";
+        }
+        stringJoiner.add(base
+                .replace(condition.getTargetRoot(), condition.getTargetRoot() + whereClause)
+                .replace(FhirConnectConst.FHIR_RESOURCE_FC, resource));
     }
 
     public String getFhirPathWithoutConditions(final String originalFhirPath, final Condition condition,
@@ -556,31 +582,50 @@ public class OpenFhirStringUtils {
         }
 
         boolean negate = FhirConnectConst.CONDITION_OPERATOR_NOT_OF.equals(condition.getOperator());
+        String targetAttr = condition.getTargetAttribute();
+        List<String> codes = getCodesFromCriteria(condition.getCriteria());
+
+        String joinedConditions = codes.stream()
+                .map(code -> {
+                    if(targetAttr.contains("coding")){
+                        return targetAttr.replace(".code",".where")+ "(code='" + code + "').exists()";
+                    } else if (targetAttr.contains("url")) {
+                        return targetAttr +".toString().contains('"+code+"')";
+                    } else {
+                        return targetAttr+".toString() = '"+code +"'";
+                    }
+                })
+                .collect(Collectors.joining(" or "));
 
         if (actualConditionTargetRoot.startsWith(resource) && withParentsWhereInPlace.equals(originalFhirPath)) {
-            // find the right place first
             final String commonPath = setParentsWherePathToTheCorrectPlace(originalFhirPath,
-                                                                           actualConditionTargetRoot); // path right before the condition should start
+                    actualConditionTargetRoot); // path right before the condition should start
             final String remainingToEndUpInWhere = actualConditionTargetRoot
                     .replace(commonPath + ".", "")
                     .replace(commonPath, "");
             final String remainingToAdd =
                     StringUtils.isBlank(remainingToEndUpInWhere) ? "" : (remainingToEndUpInWhere + ".");
-            final String whereClause =
-                    ".where(" + remainingToAdd + condition.getTargetAttribute() + ".toString().contains('"
-                            + getStringFromCriteria(condition.getCriteria()).getCode() + "')" + (negate ? "=false" : "")
-                            + ")";
+
+            final String whereClause;
+            if(codes.size()>1){
+                whereClause = WHERE_CLAUSE + remainingToAdd + (negate ? "(" + joinedConditions + ")" + FALSE_CLAUSE : joinedConditions) + ")";
+            } else{
+                whereClause = WHERE_CLAUSE + remainingToAdd + (negate ? joinedConditions + FALSE_CLAUSE : joinedConditions) + ")";
+            }
             final String remainingItemsFromParent = originalFhirPath.replace(commonPath, "");
             return commonPath + whereClause + remainingItemsFromParent;
         } else {
-            // then do your own where path
-            final String whereClause =
-                    ".where(" + condition.getTargetAttribute() + ".toString().contains('" + getStringFromCriteria(
-                            condition.getCriteria()).getCode() + "')" + (negate ? "=false" : "") + ")";
+            final String whereClause;
+            if(codes.size() >1){
+                whereClause = WHERE_CLAUSE + (negate ? "(" + joinedConditions + ")" + FALSE_CLAUSE : joinedConditions) + ")";
+            } else{
+                whereClause = WHERE_CLAUSE + (negate ? joinedConditions + FALSE_CLAUSE : joinedConditions) + ")";
+            }
             // then suffix with whatever is left from the children's path
             return withParentsWhereInPlace + whereClause + (StringUtils.isBlank(remainingItems) ? ""
                     : (remainingItems.startsWith(".") ? remainingItems : ("." + remainingItems)));
         }
+
     }
 
     /**
@@ -718,6 +763,43 @@ public class OpenFhirStringUtils {
                     .replace("]", "").split("\\.")[0];
         }
         return new Coding(system, codingCode, null);
+    }
+
+    public List<String> getCodesFromCriteria(final String criteria) {
+        if (criteria == null) {
+            return Collections.emptyList();
+        }
+
+        // Handle simple code without brackets
+        if (!criteria.startsWith("[") && !criteria.endsWith("]")) {
+            return Collections.singletonList(criteria.trim());
+        }
+
+        // Remove brackets and split by comma
+        String[] criterias = criteria.replace("[", "")
+                .replace("]", "")
+                .split(",");
+
+        return Collections.unmodifiableList(Arrays.stream(criterias)
+                .map(code -> code.trim())
+                .map(code -> {
+                    // Handle StructureDefinition URLs
+                    if (code.startsWith("http://") || code.startsWith("https://")) {
+                        return code;
+                    }
+
+                    // Handle SNOMED and LOINC codes - maintain backward compatibility
+                    if (code.startsWith("$snomed.")) {
+                        return code.substring(8); // Just return the code part
+                    }
+                    if (code.startsWith("$loinc.")) {
+                        return code.substring(7); // Just return the code part
+                    }
+
+                    // Handle simple codes
+                    return code;
+                })
+                .toList());
     }
 
     /**
@@ -877,4 +959,5 @@ public class OpenFhirStringUtils {
         }
         return true;
     }
+
 }

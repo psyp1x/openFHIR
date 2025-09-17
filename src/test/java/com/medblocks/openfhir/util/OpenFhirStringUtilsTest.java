@@ -283,7 +283,7 @@ public class OpenFhirStringUtilsTest {
         condition.setTargetAttribute("code");
         condition.setCriteria("[bd]");
         condition.setOperator("one of");
-        Assert.assertEquals("Encounter.location.where(physicalType.coding.code.toString().contains('bd'))",
+        Assert.assertEquals("Encounter.location.where(physicalType.coding.code.toString() = 'bd')",
                             openFhirStringUtils.getFhirPathWithConditions("Encounter.location",
                                                                           condition,
                                                                           "Encounter",
@@ -294,7 +294,7 @@ public class OpenFhirStringUtilsTest {
         condition.setTargetAttribute("system");
         condition.setCriteria("[external identifier]");
         condition.setOperator("one of");
-        Assert.assertEquals("MedicationStatement.identifier.where(system.toString().contains('external identifier'))",
+        Assert.assertEquals("MedicationStatement.identifier.where(system.toString() = 'external identifier')",
                             openFhirStringUtils.getFhirPathWithConditions("MedicationStatement.identifier",
                                                                           condition,
                                                                           "MedicationStatement",
@@ -311,7 +311,7 @@ public class OpenFhirStringUtilsTest {
         condition.setTargetAttribute("system");
         condition.setCriteria("[id]");
         condition.setOperator("one of");
-        Assert.assertEquals("Patient.identifier.where(system.toString().contains('id'))",
+        Assert.assertEquals("Patient.identifier.where(system.toString() = 'id')",
                             openFhirStringUtils.getFhirPathWithConditions("Patient.identifier",
                                                                           condition,
                                                                           "Patient",
@@ -336,7 +336,7 @@ public class OpenFhirStringUtilsTest {
         condition.setCriteria("[http://fhir.de/CodeSystem/bfarm/icd-10-gm]");
         condition.setOperator("one of");
         Assert.assertEquals(
-                "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value.resolve().code.coding.where(system.toString().contains('http://fhir.de/CodeSystem/bfarm/icd-10-gm')).code",
+               "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value.resolve().code.coding.where(system.toString() = 'http://fhir.de/CodeSystem/bfarm/icd-10-gm').code",
                 openFhirStringUtils.getFhirPathWithConditions(
                         "Condition.extension.where(url.toString().contains('http://hl7.org/fhir/StructureDefinition/condition-related')).value.resolve().code.coding.code",
                         condition,
@@ -393,7 +393,7 @@ public class OpenFhirStringUtilsTest {
         condition.setTargetAttribute("physicalType.coding.code");
         condition.setCriteria("[ro]");
         condition.setOperator("one of");
-        Assert.assertEquals("Condition.location.where(physicalType.coding.code.toString().contains('ro')).id",
+        Assert.assertEquals("Condition.location.where(physicalType.coding.where(code='ro').exists()).id",
                             openFhirStringUtils.getFhirPathWithConditions("Condition.location.id",
                                                                           condition,
                                                                           "Condition",
@@ -429,7 +429,7 @@ public class OpenFhirStringUtilsTest {
         condition.setCriteria("8462-4");
         condition.setOperator("one of");
         Assert.assertEquals(
-                ".where(code.coding.code.toString().contains('8462-4')).value",
+                ".where(code.coding.where(code='8462-4').exists()).value",
                 openFhirStringUtils.getFhirPathWithConditions("value",
                                                               condition,
                                                               "Observation",
