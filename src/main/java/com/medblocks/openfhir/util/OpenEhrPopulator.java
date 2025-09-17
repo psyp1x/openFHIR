@@ -9,6 +9,8 @@ import com.google.gson.JsonPrimitive;
 import com.medblocks.openfhir.fc.FhirConnectConst;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.r4.model.Address;
@@ -16,6 +18,7 @@ import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.BooleanType;
+import org.hl7.fhir.r4.model.CodeType;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DateTimeType;
@@ -41,6 +44,37 @@ import org.springframework.stereotype.Component;
 public class OpenEhrPopulator {
 
     private final OpenFhirMapperUtils openFhirMapperUtils;
+
+    public static final String DATA_ABSENT_REASON_URL = "http://hl7.org/fhir/StructureDefinition/data-absent-reason";
+    private static final Set<String> DATA_ABSENT_REASON_SYSTEMS = Set.of(
+            "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+            "http://hl7.org/fhir/data-absent-reason",
+            "http://terminology.hl7.org/CodeSystem/dataabsentreason"
+    );
+    private static final String NULL_FLAVOUR_TERMINOLOGY = "openehr";
+
+    private enum NullFlavourAttributes {
+        UNKNOWN("unknown", "253"),
+        NO_INFORMATION("no information", "271"),
+        MASKED("masked", "272"),
+        NOT_APPLICABLE("not applicable", "273");
+
+        private final String value;
+        private final String code;
+
+        NullFlavourAttributes(String value, String code) {
+            this.value = value;
+            this.code = code;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public String getCode() {
+            return code;
+        }
+    }
 
     @Autowired
     public OpenEhrPopulator(OpenFhirMapperUtils openFhirMapperUtils) {
@@ -74,6 +108,14 @@ public class OpenEhrPopulator {
             // still has recurring syntax due to the fact some recurring elements were not aligned or simply couldn't have been
             // in this case just set all to 0th
             openEhrPath = openEhrPath.replace(RECURRING_SYNTAX, ":0");
+        }
+
+        if (openEhrPath.contains("null_flavour")) {
+            final boolean handledNullFlavour = setNullFlavourForDataAbsentReason(openEhrPath, extractedValue,
+                                                                                 constructingFlat);
+            if (handledNullFlavour) {
+                return;
+            }
         }
 
         if (openEhrPath.contains("|")) {
@@ -363,6 +405,113 @@ public class OpenEhrPopulator {
             addToConstructingFlat(mappingPath + "/target|preferred_term", coding.getDisplay(), flat);
             addToConstructingFlat(mappingPath + "/target|code", coding.getCode(), flat);
             addToConstructingFlat(mappingPath + "/target|terminology", coding.getSystem(), flat);
+        }
+    }
+
+    public boolean setNullFlavourForDataAbsentReason(final String openEhrPath,
+                                                     final Base dataAbsentReasonValue,
+                                                     final JsonObject constructingFlat) {
+        if (constructingFlat == null || StringUtils.isBlank(openEhrPath) || dataAbsentReasonValue == null) {
+            return false;
+        }
+        final String basePath = extractNullFlavourBasePath(openEhrPath);
+        if (StringUtils.isBlank(basePath)) {
+            return false;
+        }
+        final NullFlavourAttributes attributes = resolveNullFlavour(dataAbsentReasonValue);
+        if (attributes == null) {
+            return false;
+        }
+
+        addToConstructingFlat(basePath + "|value", attributes.getValue(), constructingFlat);
+        addToConstructingFlat(basePath + "|code", attributes.getCode(), constructingFlat);
+        addToConstructingFlat(basePath + "|terminology", NULL_FLAVOUR_TERMINOLOGY, constructingFlat);
+        return true;
+    }
+
+    private String extractNullFlavourBasePath(final String openEhrPath) {
+        final int pipeIndex = openEhrPath.indexOf('|');
+        if (pipeIndex >= 0) {
+            return openEhrPath.substring(0, pipeIndex);
+        }
+        return openEhrPath;
+    }
+
+    private NullFlavourAttributes resolveNullFlavour(final Base value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Extension extension) {
+            if (!DATA_ABSENT_REASON_URL.equals(extension.getUrl())) {
+                return null;
+            }
+            return resolveNullFlavour(extension.getValue());
+        }
+        if (value instanceof CodeableConcept concept) {
+            for (Coding coding : concept.getCoding()) {
+                final NullFlavourAttributes mapped = resolveNullFlavourFromCoding(coding);
+                if (mapped != null) {
+                    return mapped;
+                }
+            }
+            return mapDataAbsentReasonCode(concept.getText());
+        }
+        if (value instanceof Coding coding) {
+            return resolveNullFlavourFromCoding(coding);
+        }
+        if (value instanceof Enumeration<?> enumeration) {
+            return mapDataAbsentReasonCode(enumeration.getValueAsString());
+        }
+        if (value instanceof CodeType codeType) {
+            return mapDataAbsentReasonCode(codeType.getCode());
+        }
+        if (value instanceof StringType stringType) {
+            return mapDataAbsentReasonCode(stringType.getValue());
+        }
+        if (value.hasPrimitiveValue()) {
+            return mapDataAbsentReasonCode(value.primitiveValue());
+        }
+        return null;
+    }
+
+    private NullFlavourAttributes resolveNullFlavourFromCoding(final Coding coding) {
+        if (coding == null) {
+            return null;
+        }
+        if (StringUtils.isNotBlank(coding.getSystem())
+                && !DATA_ABSENT_REASON_SYSTEMS.contains(coding.getSystem())) {
+            return null;
+        }
+        return mapDataAbsentReasonCode(coding.getCode());
+    }
+
+    private NullFlavourAttributes mapDataAbsentReasonCode(final String code) {
+        if (StringUtils.isBlank(code)) {
+            return null;
+        }
+        final String normalized = code.toLowerCase(Locale.ROOT);
+        switch (normalized) {
+            case "unknown":
+            case "asked-unknown":
+            case "temp-unknown":
+            case "not-asked":
+            case "not-a-number":
+            case "negative-infinity":
+            case "positive-infinity":
+            case "not-performed":
+            case "other":
+                return NullFlavourAttributes.UNKNOWN;
+            case "asked-declined":
+            case "masked":
+            case "not-permitted":
+                return NullFlavourAttributes.MASKED;
+            case "not-applicable":
+            case "unsupported":
+                return NullFlavourAttributes.NOT_APPLICABLE;
+            case "as-text":
+            case "error":
+            default:
+                return NullFlavourAttributes.NO_INFORMATION;
         }
     }
 

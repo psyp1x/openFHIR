@@ -356,6 +356,76 @@ public class FhirToOpenEhr {
         return null;
     }
 
+    private boolean handleDataAbsentReasonWhenNoResult(final FhirToOpenEhrHelper helper,
+                                                       final JsonObject flatComposition,
+                                                       final Base toResolveOn) {
+        if (helper == null || flatComposition == null || toResolveOn == null) {
+            return false;
+        }
+        final String nullFlavourPath = deriveNullFlavourPath(helper.getOpenEhrPath());
+        if (StringUtils.isBlank(nullFlavourPath)) {
+            return false;
+        }
+        final List<Base> dataAbsentReasons = resolveDataAbsentReasonValues(toResolveOn);
+        if (dataAbsentReasons.isEmpty()) {
+            return false;
+        }
+        for (Base reason : dataAbsentReasons) {
+            if (openEhrPopulator.setNullFlavourForDataAbsentReason(nullFlavourPath, reason, flatComposition)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String deriveNullFlavourPath(final String openEhrPath) {
+        if (StringUtils.isBlank(openEhrPath)) {
+            return null;
+        }
+        String basePath = openEhrPath;
+        final int pipeIndex = basePath.indexOf('|');
+        if (pipeIndex >= 0) {
+            basePath = basePath.substring(0, pipeIndex);
+        }
+        if (basePath.contains(RECURRING_SYNTAX)) {
+            basePath = basePath.replace(RECURRING_SYNTAX, ":0");
+        }
+        if (basePath.endsWith("null_flavour")) {
+            return basePath;
+        }
+        if (basePath.endsWith("/")) {
+            return basePath + "null_flavour";
+        }
+        return basePath + "/null_flavour";
+    }
+
+    private List<Base> resolveDataAbsentReasonValues(final Base element) {
+        if (element == null) {
+            return Collections.emptyList();
+        }
+        try {
+            final List<Base> extensionValues = fhirPathR4.evaluate(element,
+                    "extension('" + OpenEhrPopulator.DATA_ABSENT_REASON_URL + "').value",
+                    Base.class);
+            if (extensionValues != null && !extensionValues.isEmpty()) {
+                return extensionValues;
+            }
+        } catch (Exception e) {
+            log.debug("Unable to evaluate data absent reason extension on element of type {}: {}",
+                      element.getClass(), e.getMessage());
+        }
+        try {
+            final List<Base> propertyValues = fhirPathR4.evaluate(element, "dataAbsentReason", Base.class);
+            if (propertyValues != null && !propertyValues.isEmpty()) {
+                return propertyValues;
+            }
+        } catch (Exception e) {
+            log.debug("Unable to evaluate dataAbsentReason property on element of type {}: {}",
+                      element.getClass(), e.getMessage());
+        }
+        return Collections.emptyList();
+    }
+
 
     /**
      * Iterates over Helpers (and inner helpers) and evaluates FHIR path throughout the recursion while adding
@@ -396,8 +466,11 @@ public class FhirToOpenEhr {
             }
         }
         if (results == null || results.isEmpty()) {
-            // todo: here within helpers we should have an info whether something is required in openEHR template or not
-            // if it is required, add nullflavors
+            final boolean handledNullFlavour = handleDataAbsentReasonWhenNoResult(helper, flatComposition,
+                                                                                  toResolveOn);
+            if (handledNullFlavour) {
+                return true;
+            }
             log.warn("No results found for FHIRPath {}, evaluating on type: {}", fhirPath,
                      toResolveOn.getClass());
             return false;
