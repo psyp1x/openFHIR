@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.medblocks.openfhir.fc.FhirConnectConst;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -629,8 +630,61 @@ public class OpenEhrPopulator {
         if (StringUtils.isEmpty(value)) {
             return;
         }
+
+        if (isContextStartKey(key)) {
+            toUpdateContextBoundary(key, value, constructingFlat, true);
+            return;
+        }
+
+        if (isContextEndKey(key)) {
+            toUpdateContextBoundary(key, value, constructingFlat, false);
+            return;
+        }
+
         log.debug("Setting value {} on path {}", value, key);
         constructingFlat.add(key, new JsonPrimitive(value));
+    }
+
+    private boolean isContextStartKey(final String key) {
+        return key.contains("/context/") && key.endsWith("start_time");
+    }
+
+    private boolean isContextEndKey(final String key) {
+        if (!key.contains("/context/")) {
+            return false;
+        }
+        return key.endsWith("_end_time") || key.endsWith("/end_time");
+    }
+
+    private void toUpdateContextBoundary(final String key,
+                                           final String candidateValue,
+                                           final JsonObject constructingFlat,
+                                           final boolean pickEarliest) {
+        final var existing = constructingFlat.get(key);
+        if (existing == null || existing.isJsonNull()) {
+            constructingFlat.add(key, new JsonPrimitive(candidateValue));
+            return;
+        }
+
+        final String existingValue = existing.getAsString();
+        final Date existingDate = openFhirMapperUtils.stringToDate(existingValue);
+        final Date candidateDate = openFhirMapperUtils.stringToDate(candidateValue);
+
+        if (existingDate == null || candidateDate == null) {
+            final boolean shouldReplace = pickEarliest
+                    ? candidateValue.compareTo(existingValue) < 0
+                    : candidateValue.compareTo(existingValue) > 0;
+            if (shouldReplace) {
+                constructingFlat.add(key, new JsonPrimitive(candidateValue));
+            }
+            return;
+        }
+
+        final boolean shouldReplace = pickEarliest ? candidateDate.before(existingDate)
+                : candidateDate.after(existingDate);
+        if (shouldReplace) {
+            constructingFlat.add(key, new JsonPrimitive(candidateValue));
+        }
     }
 
     final void addToConstructingBoolean(final String key, final Boolean value, final JsonObject constructingFlat) {

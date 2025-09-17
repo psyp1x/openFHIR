@@ -14,9 +14,32 @@ public class OpenEhrPopulatorTest {
 
     @Before
     public void setUp() {
-        OpenFhirMapperUtils mapperUtils = new OpenFhirMapperUtils();
-        populator = new OpenEhrPopulator(mapperUtils);
+        populator = new OpenEhrPopulator(new OpenFhirMapperUtils());
         flat = new JsonObject();
+    }
+
+    @Test
+    public void contextStartTimeRetainsEarliestValue() {
+        JsonObject localFlat = new JsonObject();
+        String path = "test_template/context/start_time";
+
+        populator.addToConstructingFlat(path, "2024-05-05T10:00:00", localFlat);
+        populator.addToConstructingFlat(path, "2024-05-05T12:00:00", localFlat);
+        populator.addToConstructingFlat(path, "2024-05-05T09:00:00", localFlat);
+
+        Assert.assertEquals("2024-05-05T09:00:00", localFlat.get(path).getAsString());
+    }
+
+    @Test
+    public void contextEndTimeRetainsLatestValue() {
+        JsonObject localFlat = new JsonObject();
+        String path = "test_template/context/_end_time";
+
+        populator.addToConstructingFlat(path, "2024-05-05T10:00:00", localFlat);
+        populator.addToConstructingFlat(path, "2024-05-05T09:00:00", localFlat);
+        populator.addToConstructingFlat(path, "2024-05-05T11:00:00", localFlat);
+
+        Assert.assertEquals("2024-05-05T11:00:00", localFlat.get(path).getAsString());
     }
 
     @Test
