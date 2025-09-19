@@ -20,6 +20,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.TimeZone;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,6 +40,7 @@ public class MedikationseintragTest extends KdsBidirectionalTest {
     @SneakyThrows
     @Override
     protected void prepareState() {
+                TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
         context = getContext(CONTEXT);
         operationaltemplateSerialized = IOUtils.toString(this.getClass().getResourceAsStream(HELPER_LOCATION + OPT));
         operationaltemplate = getOperationalTemplate();

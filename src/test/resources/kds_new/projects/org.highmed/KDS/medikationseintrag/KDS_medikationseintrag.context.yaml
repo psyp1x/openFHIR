@@ -22,6 +22,8 @@ context:
     - "CLUSTER.medication_status_fhir.v0"
     - "CLUSTER.entry_category.v0"
     - "CLUSTER.identifier_fhir.v0"
+    - "RESOURCE.list.min"
+    - "RESOURCE.medication.min"
     - "CLUSTER.case_identification.v0"
   extensions:
     - "KDS_medication.v3"

@@ -121,6 +121,7 @@ public class OpenFhirMapperUtils {
         if (date == null) {
             return null;
         }
+        sdf2.setTimeZone(java.util.TimeZone.getDefault());
         return sdf2.format(date);
     }
 
@@ -128,6 +129,7 @@ public class OpenFhirMapperUtils {
         if (date == null) {
             return null;
         }
+        sdf.setTimeZone(java.util.TimeZone.getDefault());
         return sdf.format(date);
     }
 
@@ -135,6 +137,7 @@ public class OpenFhirMapperUtils {
         if (date == null) {
             return null;
         }
+        time.setTimeZone(java.util.TimeZone.getDefault());
         return time.format(date);
     }
 
@@ -143,10 +146,12 @@ public class OpenFhirMapperUtils {
             return null;
         }
         try {
+            sdf.setTimeZone(java.util.TimeZone.getDefault());
             return sdf.parse(date);
         } catch (ParseException e) {
             log.error("Couldn't parse date: {}", date, e);
             try {
+                sdf2.setTimeZone(java.util.TimeZone.getDefault());
                 return sdf2.parse(date);
             } catch (ParseException ex) {
                 log.error("Couldn't parse date: {}", date, e);

@@ -49,8 +49,8 @@ public class OptService {
 
             // Behavior:
             // - POST (id is empty): create new, but fail if templateId already exists
-            // - PUT  (id present): update existing; allow overwrite if the templateId belongs to the same record
-            //                       fail if the payload's templateId exists on a DIFFERENT record
+            // - PUT  (id present): update an existing record ONLY; 404 if id not found; fail if payload's
+            //                       templateId belongs to a different record
             String entityId;
             if (StringUtils.isEmpty(id)) {
                 if (existingByTemplate != null) { // Create flow
@@ -60,13 +60,16 @@ public class OptService {
                 }
                 entityId = null; // let DB generate
             } else { // Update flow
+                final OptEntity existingById = optRepository.byId(id);
+                if (existingById == null) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "OPT with id " + id + " not found.");
+                }
                 if (existingByTemplate != null && !existingByTemplate.getId().equals(id)) {
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
                             "Template with templateId " + operationaltemplate.getTemplateId() +
                                     " (normalized to: " + normalizedTemplateId + ") already exists under a different id.");
                 }
-                // If existingByTemplate is this same record, use its id (ensures update). Otherwise update record by provided id.
-                entityId = existingByTemplate != null ? existingByTemplate.getId() : id;
+                entityId = id; // strictly update the requested resource
             }
 
             // get name from it
@@ -87,12 +90,19 @@ public class OptService {
     }
 
     public List<OptEntity> all(final String reqId) {
-        return optRepository.findAll();
+        final List<OptEntity> all = optRepository.findAll();
+        // Return metadata only, hide content as the controller contract describes
+        return all.stream().map(o -> {
+            final OptEntity copy = o.copy();
+            copy.setContent("redacted");
+            return copy;
+        }).toList();
     }
 
 
     public String getContentByTemplateId(final String templateId, final String reqId) {
-        final OptEntity byTemplateId = optRepository.findByTemplateId(templateId);
+        final String normalizedTemplateId = OpenFhirMappingContext.normalizeTemplateId(templateId);
+        final OptEntity byTemplateId = optRepository.findByTemplateId(normalizedTemplateId);
         return byTemplateId == null ? null : byTemplateId.getContent();
     }
 
