@@ -10,8 +10,10 @@ import org.apache.xmlbeans.XmlException;
 import org.openehr.schemas.v1.OPERATIONALTEMPLATE;
 import org.openehr.schemas.v1.TemplateDocument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -43,19 +45,44 @@ public class OptService {
             final OPERATIONALTEMPLATE operationaltemplate = parseOptFromString(opt);
             final String normalizedTemplateId = OpenFhirMappingContext.normalizeTemplateId(operationaltemplate.getTemplateId().getValue());
             openEhrApplicationScopedUtils.parseWebTemplate(operationaltemplate);
-            final OptEntity existing = optRepository.findByTemplateId(normalizedTemplateId);
-            if (existing != null) {
-                throw new IllegalArgumentException("Template with templateId " + operationaltemplate.getTemplateId() + " (normalized to: " + normalizedTemplateId + ") already exists.");
+            final OptEntity existingByTemplate = optRepository.findByTemplateId(normalizedTemplateId);
+
+            // Behavior:
+            // - POST (id is empty): create new, but fail if templateId already exists
+            // - PUT  (id present): update existing; allow overwrite if the templateId belongs to the same record
+            //                       fail if the payload's templateId exists on a DIFFERENT record
+            String entityId;
+            if (StringUtils.isEmpty(id)) {
+                if (existingByTemplate != null) { // Create flow
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Template with templateId " + operationaltemplate.getTemplateId() +
+                                    " (normalized to: " + normalizedTemplateId + ") already exists.");
+                }
+                entityId = null; // let DB generate
+            } else { // Update flow
+                if (existingByTemplate != null && !existingByTemplate.getId().equals(id)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Template with templateId " + operationaltemplate.getTemplateId() +
+                                    " (normalized to: " + normalizedTemplateId + ") already exists under a different id.");
+                }
+                // If existingByTemplate is this same record, use its id (ensures update). Otherwise update record by provided id.
+                entityId = existingByTemplate != null ? existingByTemplate.getId() : id;
             }
+
             // get name from it
-            final OptEntity entity = new OptEntity(StringUtils.isEmpty(id) ? null : id, opt, normalizedTemplateId, operationaltemplate.getTemplateId().getValue(), operationaltemplate.getTemplateId().getValue());
+            final OptEntity entity = new OptEntity(entityId, opt, normalizedTemplateId,
+                                                   operationaltemplate.getTemplateId().getValue(),
+                                                   operationaltemplate.getTemplateId().getValue());
             final OptEntity insert = optRepository.save(entity);
             final OptEntity copied = insert.copy();
             copied.setContent("redacted");
             return copied;
         } catch (final Exception e) {
-            log.error("Couldn't create a template, reqId: {}", reqId, e);
-            throw new IllegalArgumentException("Couldn't create a template. " + e.getMessage());
+            log.error("Couldn't create/update a template, reqId: {}", reqId, e);
+            if (e instanceof ResponseStatusException rse) {
+                throw rse;
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Couldn't create/update a template. " + e.getMessage());
         }
     }
 
