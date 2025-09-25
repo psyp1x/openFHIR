@@ -121,6 +121,10 @@ public class FhirConnectValidator {
             aqlPath = "";
         }
         else{
+            // Paths starting with $openEhrContext are not AQL object paths and should be ignored by the validator
+            if (mapping.getWith().getOpenehr().startsWith(FhirConnectConst.OPENEHR_CONTEXT_FC)) {
+                return "";
+            }
             aqlPath = mapping.getWith().getOpenehr().replace(FhirConnectConst.OPENEHR_ARCHETYPE_FC,"").replace(FhirConnectConst.OPENEHR_COMPOSITION_FC,"")
                     .replace(FhirConnectConst.REFERENCE,"").replace(FhirConnectConst.OPENEHR_ROOT_FC, "");
         }
