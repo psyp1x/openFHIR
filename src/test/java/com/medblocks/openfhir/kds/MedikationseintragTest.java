@@ -40,7 +40,6 @@ public class MedikationseintragTest extends KdsBidirectionalTest {
     @SneakyThrows
     @Override
     protected void prepareState() {
-                TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
         context = getContext(CONTEXT);
         operationaltemplateSerialized = IOUtils.toString(this.getClass().getResourceAsStream(HELPER_LOCATION + OPT));
         operationaltemplate = getOperationalTemplate();

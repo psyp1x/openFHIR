@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.TimeZone;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.ehrbase.openehr.sdk.serialisation.flatencoding.std.marshal.FlatJsonMarshaller;
@@ -80,6 +81,7 @@ public abstract class KdsBidirectionalTest {
 
     @Before
     public void init() {
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
         repo = new TestOpenFhirMappingContext(fhirPath, openFhirStringUtils, fhirConnectModelMerger);
         fhirPath.setEvaluationContext(new IFhirPathEvaluationContext() {
             // todo!!
